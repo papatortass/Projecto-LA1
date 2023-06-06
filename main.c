@@ -6,10 +6,10 @@
     #include <math.h>
 
 
-
     typedef struct Player{
         int playerx;
         int playery;
+        int kills;
         int vida;
         int dano;
     }Player;
@@ -45,10 +45,9 @@
 
 
     volatile int yMax, xMax;
+    volatile int numMobs = 10;
     volatile float luz = 7.5;
     Moeda *coins;
-
-
 
 
     int mapSetUp(int y,int x,char **m);
@@ -106,7 +105,7 @@
 
     void drawDeathMenu(int y,int x){
 
-        //Resetar a luz
+        //Resetar
         luz = 7.5;
 
         //Limpar o mapa
@@ -155,8 +154,6 @@
     }
 
     int main(){
-
-        int numMobs = 10;
 
         WINDOW * win = initscr();
         noecho();
@@ -396,6 +393,12 @@
         m[(int)y-1][4] = 't';
         m[(int)y-1][5] = 's';
 
+        m[(int)yMax-1][30] = 'K';
+        m[(int)yMax-1][31] = 'i';
+        m[(int)yMax-1][32] = 'l';
+        m[(int)yMax-1][33] = 'l';
+        m[(int)yMax-1][34] = 's';
+
         return 0;
     }
 
@@ -427,6 +430,7 @@
         newPlayer->playery = initialY;
         newPlayer->vida = 20;
         newPlayer->dano = 2;
+        newPlayer->kills = 0;
 
         //Mover o jogador para a posição gerada
         playerMove(newPlayer->playery, newPlayer->playerx,newPlayer,luz,m,yMax,xMax);
@@ -589,6 +593,12 @@
         light[(int)yMax-1][3] = 'n';
         light[(int)yMax-1][4] = 't';
         light[(int)yMax-1][5] = 's';
+
+        light[(int)yMax-1][30] = 'K';
+        light[(int)yMax-1][31] = 'i';
+        light[(int)yMax-1][32] = 'l';
+        light[(int)yMax-1][33] = 'l';
+        light[(int)yMax-1][34] = 's';
                 
         int prevY = (int) user->playery;
         int prevX = (int) user->playerx;
@@ -1082,6 +1092,19 @@
             }
         }
 
+        maximo = yMax - 1;
+        //Mover o cursor para a posição correta no fundo da tela
+        move(maximo , 36);
+
+        //Imprimir as barras de kills
+        for (int i = 0; i <= user->vida; i++) {
+            if (i < user->kills){
+                addch('|');  // Exqibe uma vida representada por '|'
+            } else {
+                addch(' ');  // Espaço vazio para representar vidas não disponíveis
+            }
+        }
+
         //Restaurar a posição original do cursor
         move(curY, curX);
 
@@ -1108,7 +1131,6 @@
     int combat(char ** m,Player * user,Mob * mob,int input){
         if(input== 1){
             int index = -1;
-            int numMobs=10;
 
             // Procura o monstro nas imediações do jogador
             for (int i = 0; i < numMobs; i++) {
@@ -1132,16 +1154,21 @@
 
                     //Monstro Derrotado
                     mvprintw(yMax-1,(xMax - 15) / 2,"voce matou o monstro");
+                    user->kills++;
 
-                    //Remover monstro do mapa e da lista de mobs
+                    //Respawnar o monstro e aumentar o dano
                     m[mob[index].moby][mob[index].mobx] = ' ';
-                    
-                    for (int i = index; i < numMobs - 1; i++) {
-                        mob[i] = mob[i + 1];
-                    }
+                    int initialY, initialX = 1;
+                    do {
+                        initialY = rand() % ((int)yMax - 2) + 1;
+                        initialX = rand() % ((int)xMax - 2) + 1;
+                    } while (m[initialY][initialX] != ' ' || (int)calculateDistance(user->playerx, user->playery, (float)initialX, (float)initialY ) < 5);
+                    mob[index].moby = initialY;
+                    mob[index].mobx = initialX;
+                    mob[index].dano += 1;
+                    mob[index].vida_atual = mob[index].vida;
+                    m[initialY][initialX] = 'C';
 
-                    numMobs--;
-                    mob = realloc(mob, sizeof(Mob) * numMobs);
                 }
             }
 
@@ -1163,3 +1190,4 @@
         }
         return 0;
     }
+
